@@ -4,7 +4,7 @@ include 'koneksi.php';
 
 // Fungsi untuk menghitung Certainty Factor (CF) berdasarkan belief (MB) dan disbelief (MD)
 function hitungCF($mb, $md) {
-    return $mb - $md; // Menghitung Certainty Factor
+    return $mb - $md; // Menghitung Certainty Factor untuk setiap gejala
 }
 
 // Fungsi untuk mendapatkan nama penyakit berdasarkan ID penyakit
@@ -17,11 +17,22 @@ function getPenyakit($id_penyakit, $conn) {
     return $result['nama_penyakit'];
 }
 
+// Fungsi untuk menghitung total CF dengan rata-rata
+function gabungkanCF($cf_array) {
+    $total_cf = 0;
+    foreach ($cf_array as $cf) {
+        $total_cf += $cf;  // Menjumlahkan CF
+    }
+    // Rata-rata CF, pastikan CF tidak melebihi 1
+    $total_cf = $total_cf / count($cf_array);
+    return min($total_cf, 1);  // Pembatasan agar CF tidak melebihi 1
+}
+
 // Fungsi untuk melakukan diagnosis berdasarkan gejala yang dipilih oleh pengguna
 function lakukanDiagnosa($gejala_pilih, $conn) {
-    $penyakitCF = [];
+    $penyakitCF = []; // Inisialisasi variabel $penyakitCF
+    $cf_array = [];  // Array untuk menyimpan semua CF
 
-    // Loop untuk setiap gejala yang dipilih
     foreach ($gejala_pilih as $g) {
         // Query untuk mengambil aturan yang terkait dengan gejala
         $query = "SELECT p.id_penyakit, p.nama_penyakit, a.belief, a.disbelief 
@@ -35,33 +46,34 @@ function lakukanDiagnosa($gejala_pilih, $conn) {
 
         // Proses setiap aturan yang ditemukan untuk gejala
         while ($row = $result->fetch_assoc()) {
-            $id_penyakit = $row['id_penyakit'];
             $mb = $row['belief'];
             $md = $row['disbelief'];
 
-            // Menghitung CF untuk gejala dan penyakit terkait
-            $cf = hitungCF($mb, $md);
+            $cf = hitungCF($mb, $md); // Menghitung CF untuk setiap gejala
+            $cf_array[] = $cf;  // Menambahkan CF ke array
 
             // Menambahkan CF ke total CF untuk penyakit
-            if (!isset($penyakitCF[$id_penyakit])) {
-                $penyakitCF[$id_penyakit] = 0;
+            if (!isset($penyakitCF[$row['id_penyakit']])) {
+                $penyakitCF[$row['id_penyakit']] = 0;
             }
-            $penyakitCF[$id_penyakit] += $cf;
+            $penyakitCF[$row['id_penyakit']] += $cf;
         }
     }
 
-    // Menentukan penyakit dengan total CF tertinggi
+    // Menghitung total CF dengan penggabungan rata-rata atau pembatasan nilai CF
     $maxCF = -PHP_INT_MAX;
     $diagnosis_terpilih = null;
 
     foreach ($penyakitCF as $id_penyakit => $totalCF) {
-        if ($totalCF > $maxCF) {
-            $maxCF = $totalCF;
+        // Normalisasi CF
+        $totalCF_normalized = gabungkanCF($cf_array);  // Menggabungkan CF dan memastikan nilainya tidak lebih dari 1
+        if ($totalCF_normalized > $maxCF) {
+            $maxCF = $totalCF_normalized;
             $diagnosis_terpilih = getPenyakit($id_penyakit, $conn);
         }
     }
 
-    return $diagnosis_terpilih;
+    return ['penyakit' => $diagnosis_terpilih, 'cf' => $maxCF];
 }
 
 // Mengecek jika gejala dipilih melalui form
@@ -73,7 +85,12 @@ if (isset($_POST['gejala'])) {
 
     // Menampilkan hasil diagnosis
     echo "<h3>Hasil Diagnosis:</h3>";
-    echo "<p>Penyakit yang kemungkinan Anda alami adalah: <strong>$diagnosis</strong></p>";
+    if ($diagnosis['penyakit'] != null) {
+        echo "<p>Penyakit yang kemungkinan Anda alami adalah: <strong>" . $diagnosis['penyakit'] . "</strong></p>";
+        echo "<p>Kepastian: " . $diagnosis['cf'] . "</p>";
+    } else {
+        echo "<p>Tidak ada diagnosis yang dapat diberikan berdasarkan gejala yang dipilih.</p>";
+    }
 } else {
     echo "<p>Tidak ada gejala yang dipilih. Silakan pilih gejala terlebih dahulu di halaman <a href='index.php'>Index</a>.</p>";
 }

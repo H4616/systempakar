@@ -1,11 +1,11 @@
 <?php
-$host = 'localhost';  // Ganti dengan nama host Anda jika berbeda
-$username = 'root';   // Ganti dengan username database Anda
-$password = '';       // Ganti dengan password database Anda jika ada
-$dbname = 'ginjal';   // Nama database yang Anda buat
+$servername = "localhost";
+$username = "root"; // Ganti dengan username database Anda
+$password = ""; // Ganti dengan password database Anda
+$dbname = "sistem_pakar_ginjal"; // Nama database yang baru
 
 // Membuat koneksi
-$conn = new mysqli($host, $username, $password, $dbname);
+$conn = new mysqli($servername, $username, $password, $dbname);
 
 // Memeriksa koneksi
 if ($conn->connect_error) {

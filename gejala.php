@@ -110,4 +110,34 @@ $result = $conn->query($query);
                 <button type="submit" name="tambah_gejala" class="submit-btn">Tambah Gejala</button>
             </form>
 
-            <h3>D
+            <h3>Daftar Gejala yang Tersedia</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Gejala</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // Menampilkan daftar gejala
+                    if ($result->num_rows > 0) {
+                        $no = 1;
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . $no++ . "</td>";
+                            echo "<td>" . $row['nama_gejala'] . "</td>";
+                            echo "<td><a href='gejala.php?hapus=" . $row['id_gejala'] . "' class='hapus-btn'>Hapus</a></td>";
+                            echo "</tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='3'>Tidak ada gejala yang tersedia.</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
