@@ -82,16 +82,156 @@ if (isset($_POST['gejala'])) {
 
     // Memanggil fungsi untuk melakukan diagnosis
     $diagnosis = lakukanDiagnosa($gejala_pilih, $conn);
-
-    // Menampilkan hasil diagnosis
-    echo "<h3>Hasil Diagnosis:</h3>";
-    if ($diagnosis['penyakit'] != null) {
-        echo "<p>Penyakit yang kemungkinan Anda alami adalah: <strong>" . $diagnosis['penyakit'] . "</strong></p>";
-        echo "<p>Kepastian: " . $diagnosis['cf'] . "</p>";
-    } else {
-        echo "<p>Tidak ada diagnosis yang dapat diberikan berdasarkan gejala yang dipilih.</p>";
-    }
-} else {
-    echo "<p>Tidak ada gejala yang dipilih. Silakan pilih gejala terlebih dahulu di halaman <a href='index.php'>Index</a>.</p>";
 }
 ?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pakar Diagnosis Penyakit Ginjal</title>
+    <style>
+        /* Umum */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f1f8f5; /* Latar belakang lebih soft */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            background-size: cover;
+            background-position: center;
+            overflow-y: auto;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 850px;
+            margin: 40px auto;
+            background: rgba(51, 212, 73, 0.9);
+            border-radius: 25px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            padding: 50px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .form-container {
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #1E6F4D;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .submit-btn {
+            display: block;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #1E6F4D, #2C9E4F);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(45deg, #45a049, #3e8e41);
+            transform: translateY(-5px);
+        }
+
+        .submit-btn:active {
+            transform: translateY(2px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2>Hasil Diagnosis Penyakit Ginjal</h2>
+            <?php if (isset($diagnosis)): ?>
+                <?php if ($diagnosis['penyakit'] != null): ?>
+                    <div class="card">
+                        <p>Penyakit yang kemungkinan Anda alami adalah: <strong><?= $diagnosis['penyakit'] ?></strong></p>
+                        <p>Kepastian: <?= number_format($diagnosis['cf'] * 100) ?>%</p>
+                    </div>
+                <?php else: ?>
+                    <p>Tidak ada diagnosis yang dapat diberikan berdasarkan gejala yang dipilih.</p>
+                <?php endif; ?>
+            <?php else: ?>
+                <p>Tidak ada gejala yang dipilih. Silakan pilih gejala terlebih dahulu di halaman <a href="index.php">Index</a>.</p>
+            <?php endif; ?>
+
+            <!-- Kembali ke halaman Index -->
+            <a href="index.php" class="submit-btn">Kembali</a>
+        </div>
+    </div>
+</body>
+</html>
