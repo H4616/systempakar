@@ -1,52 +1,80 @@
 <?php
-function lakukanDiagnosa($gejala_pilih, $conn) {
-    $gejala_str = implode(",", $gejala_pilih);  // Menggabungkan gejala yang dipilih menjadi string
+// Koneksi ke database
+include 'koneksi.php';
 
-    // Query untuk mencari aturan yang sesuai dengan gejala yang dipilih
-    $sql = "SELECT p.id_penyakit, p.nama_penyakit, a.kepastian 
-            FROM aturan a
-            JOIN penyakit p ON a.id_penyakit = p.id_penyakit
-            WHERE a.id_gejala IN ($gejala_str)";
-
-    $result = $conn->query($sql);
-
-    // Array untuk menyimpan hasil diagnosis
-    $penyakit_cf = [];
-
-    // Menyimpan data penyakit dan nilai CF untuk setiap penyakit yang ditemukan
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $penyakit_id = $row['id_penyakit'];
-            $penyakit_nama = $row['nama_penyakit'];
-            $kepastian = $row['kepastian'];
-
-            if (!isset($penyakit_cf[$penyakit_id])) {
-                $penyakit_cf[$penyakit_id] = [
-                    'nama_penyakit' => $penyakit_nama,
-                    'cf_total' => $kepastian
-                ];
-            } else {
-                // Gabungkan CF jika penyakit yang sama ditemukan lebih dari sekali
-                $penyakit_cf[$penyakit_id]['cf_total'] = gabungkanCF($penyakit_cf[$penyakit_id]['cf_total'], $kepastian);
-            }
-        }
-    }
-
-    // Cari penyakit dengan CF tertinggi
-    $diagnosa_utama = null;
-    $cf_tertinggi = 0;
-    foreach ($penyakit_cf as $penyakit) {
-        if ($penyakit['cf_total'] > $cf_tertinggi) {
-            $cf_tertinggi = $penyakit['cf_total'];
-            $diagnosa_utama = $penyakit;
-        }
-    }
-
-    return $diagnosa_utama;
+// Fungsi untuk menghitung Certainty Factor (CF) berdasarkan belief (MB) dan disbelief (MD)
+function hitungCF($mb, $md) {
+    return $mb - $md; // Menghitung Certainty Factor
 }
 
-// Fungsi untuk menggabungkan CF
-function gabungkanCF($cf1, $cf2) {
-    return $cf1 + $cf2 * (1 - abs($cf1));
+// Fungsi untuk mendapatkan nama penyakit berdasarkan ID penyakit
+function getPenyakit($id_penyakit, $conn) {
+    $query = "SELECT nama_penyakit FROM penyakit WHERE id_penyakit = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $id_penyakit);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    return $result['nama_penyakit'];
+}
+
+// Fungsi untuk melakukan diagnosis berdasarkan gejala yang dipilih oleh pengguna
+function lakukanDiagnosa($gejala_pilih, $conn) {
+    $penyakitCF = [];
+
+    // Loop untuk setiap gejala yang dipilih
+    foreach ($gejala_pilih as $g) {
+        // Query untuk mengambil aturan yang terkait dengan gejala
+        $query = "SELECT p.id_penyakit, p.nama_penyakit, a.belief, a.disbelief 
+                  FROM aturan a
+                  JOIN penyakit p ON a.id_penyakit = p.id_penyakit
+                  WHERE a.id_gejala = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $g);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        // Proses setiap aturan yang ditemukan untuk gejala
+        while ($row = $result->fetch_assoc()) {
+            $id_penyakit = $row['id_penyakit'];
+            $mb = $row['belief'];
+            $md = $row['disbelief'];
+
+            // Menghitung CF untuk gejala dan penyakit terkait
+            $cf = hitungCF($mb, $md);
+
+            // Menambahkan CF ke total CF untuk penyakit
+            if (!isset($penyakitCF[$id_penyakit])) {
+                $penyakitCF[$id_penyakit] = 0;
+            }
+            $penyakitCF[$id_penyakit] += $cf;
+        }
+    }
+
+    // Menentukan penyakit dengan total CF tertinggi
+    $maxCF = -PHP_INT_MAX;
+    $diagnosis_terpilih = null;
+
+    foreach ($penyakitCF as $id_penyakit => $totalCF) {
+        if ($totalCF > $maxCF) {
+            $maxCF = $totalCF;
+            $diagnosis_terpilih = getPenyakit($id_penyakit, $conn);
+        }
+    }
+
+    return $diagnosis_terpilih;
+}
+
+// Mengecek jika gejala dipilih melalui form
+if (isset($_POST['gejala'])) {
+    $gejala_pilih = $_POST['gejala'];
+
+    // Memanggil fungsi untuk melakukan diagnosis
+    $diagnosis = lakukanDiagnosa($gejala_pilih, $conn);
+
+    // Menampilkan hasil diagnosis
+    echo "<h3>Hasil Diagnosis:</h3>";
+    echo "<p>Penyakit yang kemungkinan Anda alami adalah: <strong>$diagnosis</strong></p>";
+} else {
+    echo "<p>Tidak ada gejala yang dipilih. Silakan pilih gejala terlebih dahulu.</p>";
 }
 ?>
